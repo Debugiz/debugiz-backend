@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 2000;
 
-app.post('/api/v1/submit', async (req, res) => {
+app.post('/api/v1/contact-submit', async (req, res) => {
     const { name, email, contactNumber, message } = req.body;
     const requiredFields = ['name', 'email', 'contactNumber', 'message'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
@@ -38,7 +38,7 @@ app.post('/api/v1/submit', async (req, res) => {
     }
 });
 
-app.get('/api/v1/download', async (req, res) => {
+app.get('/api/v1/contact-download', async (req, res) => {
     if (req.query.password !== process.env.PASSWORD) {
         return res.status(401).json({ code: 401, message: 'Unauthorized: Incorrect password' });
     }
