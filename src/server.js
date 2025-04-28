@@ -7,6 +7,8 @@ const path = require('path');
 const mongoose = require('mongoose');
 const ContactForm = require('./model/contact-form.model');
 const connectDB = require('./db/db');
+const cors = require('cors');
+app.use(cors())
 dotenv.config();
 
 connectDB();
