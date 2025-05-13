@@ -45,7 +45,7 @@ app.post('/api/v1/contact-submit', async (req, res) => {
     }
 });
 app.get('/api/v1/contact-download', async (req, res) => {
-    console.log(req)
+   
     if (req.query.password !== process.env.PASSWORD) {
         return res.status(401).json({ code: 401, message: 'Unauthorized: Incorrect password' });
     }
@@ -92,9 +92,9 @@ app.get('/api/v1/contact-download', async (req, res) => {
     }
 });
 app.post('/api/v1/signup', async (req, res) => {
-    const { name, email, contactNumber,password} = req.body;
+    const { name, email, contactNumber,password,role} = req.body;
 
-    const requiredFields = ['name', 'email', 'contactNumber', 'password'];
+    const requiredFields = ['name', 'email', 'contactNumber', 'password','role'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
     if (missingFields.length !== 0) {
         return res.status(400).json({ code: 400, message: 'Please provide all required fields', missingFields });
@@ -105,7 +105,8 @@ app.post('/api/v1/signup', async (req, res) => {
             name: name[0].toUpperCase() + name.slice(1),
             email,
             contactNumber,
-            password
+            password,
+            role
         });
 
         await Signup.save();
@@ -116,5 +117,6 @@ app.post('/api/v1/signup', async (req, res) => {
     }
 });
 app.listen(PORT, () => {
+    console.log(process.env.PASSWORD)
     console.log(`Server is running on port: ${PORT}`);
 });
