@@ -4,6 +4,7 @@ const ContactForm = require('./model/contact-form.model');
 const connectDB = require('./db/db');
 const XLSX = require('xlsx');
 const cors = require('cors');
+const SignupForm = require('./model/singup-form.model');
 
 const app = express();
 dotenv.config();
@@ -16,18 +17,24 @@ app.use(express.urlencoded({ extended: true }));
 const PORT = process.env.PORT || 2000;
 
 app.post('/api/v1/contact-submit', async (req, res) => {
-    const { name, email, contactNumber, message } = req.body;
-    const requiredFields = ['name', 'email', 'contactNumber', 'message'];
+    const { name, email, contactNumber, Dob, Yop, Degree, Address, Experience} = req.body;
+
+    const requiredFields = ['name', 'email', 'contactNumber', 'Dob','Yop','Degree','Address','Experience'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
     if (missingFields.length !== 0) {
         return res.status(400).json({ code: 400, message: 'Please provide all required fields', missingFields });
     }
+
     try {
         const contactForm = new ContactForm({
             name: name[0].toUpperCase() + name.slice(1),
             email,
             contactNumber,
-            message
+            Dob,
+            Yop,
+            Degree,
+            Address,
+            Experience,
         });
 
         await contactForm.save();
@@ -37,8 +44,8 @@ app.post('/api/v1/contact-submit', async (req, res) => {
         res.status(500).json({ code: 500, message: 'Error saving form data' });
     }
 });
-
 app.get('/api/v1/contact-download', async (req, res) => {
+    console.log(req)
     if (req.query.password !== process.env.PASSWORD) {
         return res.status(401).json({ code: 401, message: 'Unauthorized: Incorrect password' });
     }
@@ -52,16 +59,29 @@ app.get('/api/v1/contact-download', async (req, res) => {
             Email: entry.email,
             'Contact Number': entry.contactNumber,
             Message: entry.message,
+            Dob:entry.Dob,
+            Yop:entry.Yop,
+            Degree:entry.Degree,
+            Address:entry.Address,
+            Experience:entry.Experience,
+
         }));
         const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: ['Name', 'Email', 'Contact Number', 'Message'] });
+        const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: ['Name', 'Email', 'Contact Number','Dob','Yop','Degree','Address','Experience'] });
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Contact Data');
-                worksheet['!cols'] = [
-            { wch: Math.max(...formattedData.map(row => row.Name.length), 10) + 5 },
-            { wch: Math.max(...formattedData.map(row => row.Email.length), 10) + 5 },
-            { wch: Math.max(...formattedData.map(row => row['Contact Number'].length), 10) + 5 },
-            { wch: Math.max(...formattedData.map(row => row.Message.length), 20) + 5 },
-        ];
+        worksheet['!cols'] = [
+            { wch: Math.max(...formattedData.map(row => (row.Name || '').length), 10) + 5 },
+            { wch: Math.max(...formattedData.map(row => (row.Email || '').length), 10) + 5 },
+            { wch: Math.max(...formattedData.map(row => (row.Dob || '').length), 10) + 5 },
+            { wch: Math.max(...formattedData.map(row => (row.Yop || '').length), 10) + 5 },
+            { wch: Math.max(...formattedData.map(row => (row.Degree || '').length), 10) + 5 },
+            { wch: Math.max(...formattedData.map(row => (row.Address || '').length), 10) + 5 },
+            { wch: Math.max(...formattedData.map(row => (row.Experience || '').length), 10) + 5 },
+            { wch: Math.max(...formattedData.map(row => (row['Contact Number'] || '').length), 10) + 5 },
+          ];
+          
+           
+        
         const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx', cellStyles: true });
         res.setHeader('Content-Disposition', 'attachment; filename="debugiz-contact-form.xlsx"');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -71,7 +91,30 @@ app.get('/api/v1/contact-download', async (req, res) => {
         res.status(500).json({ code: 500, message: 'Error generating Excel file' });
     }
 });
+app.post('/api/v1/signup', async (req, res) => {
+    const { name, email, contactNumber,password} = req.body;
 
+    const requiredFields = ['name', 'email', 'contactNumber', 'password'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    if (missingFields.length !== 0) {
+        return res.status(400).json({ code: 400, message: 'Please provide all required fields', missingFields });
+    }
+
+    try {
+        const Signup = new SignupForm({
+            name: name[0].toUpperCase() + name.slice(1),
+            email,
+            contactNumber,
+            password
+        });
+
+        await Signup.save();
+        res.status(200).json({ code: 200, message: 'Message sent successfully' });
+    } catch (err) {
+        console.error('Error saving form:', err);
+        res.status(500).json({ code: 500, message: 'Error saving form data' });
+    }
+});
 app.listen(PORT, () => {
     console.log(`Server is running on port: ${PORT}`);
 });
