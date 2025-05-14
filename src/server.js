@@ -106,7 +106,9 @@ app.post('/api/v1/signup', async (req, res) => {
             email,
             contactNumber,
             password,
-            role
+            role,
+            
+            
         });
 
         await Signup.save();
@@ -116,6 +118,53 @@ app.post('/api/v1/signup', async (req, res) => {
         res.status(500).json({ code: 500, message: 'Error saving form data' });
     }
 });
+app.post('/api/v1/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({
+            code: 400,
+            message: 'Please provide both email and password',
+        });
+    }
+
+    try {
+
+        const user = await SignupForm.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                code: 404,
+                message: 'User not found',
+            });
+        }
+        if (user.password !== password) {
+            return res.status(401).json({
+                code: 401,
+                message: 'Invalid credentials',
+            });
+        }
+
+
+        res.status(200).json({
+            code: 200,
+            message: 'Login successful',
+            user: {
+                name: user.name,
+                email: user.email,
+                contactNumber: user.contactNumber,
+                role: user.role,
+            },
+        });
+
+    } catch (err) {
+        console.error('Login error:', err);
+        res.status(500).json({
+            code: 500,
+            message: 'Internal server error',
+        });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(process.env.PASSWORD)
     console.log(`Server is running on port: ${PORT}`);
