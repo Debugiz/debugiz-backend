@@ -190,6 +190,50 @@ app.get('/api/v1/user-details', async (req, res) => {
         res.status(500).json({ code: 500, message: 'Internal server error' });
     }
 });
+app.put('/api/v1/user-details/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, email, contactNumber, password, role } = req.body;
+
+    try {
+        const user = await SignupForm.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ code: 404, message: 'User not found' });
+        }
+
+        // Update fields
+        if (name) user.name = name[0].toUpperCase() + name.slice(1);
+        if (email) user.email = email;
+        if (contactNumber) user.contactNumber = contactNumber;
+        if (password) user.password = password; 
+        if (role) user.role = role;
+
+        await user.save();
+
+        res.status(200).json({ code: 200, message: 'User updated successfully' });
+
+    } catch (err) {
+        console.error('Error updating user:', err);
+        res.status(500).json({ code: 500, message: 'Internal server error' });
+    }
+});
+app.delete('/api/v1/user-details/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await SignupForm.findByIdAndDelete(id);
+
+        if (!result) {
+            return res.status(404).json({ code: 404, message: 'User not found' });
+        }
+
+        res.status(200).json({ code: 200, message: 'User deleted successfully' });
+
+    } catch (err) {
+        console.error('Error deleting user:', err);
+        res.status(500).json({ code: 500, message: 'Internal server error' });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(process.env.PASSWORD)
