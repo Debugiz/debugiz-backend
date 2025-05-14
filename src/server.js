@@ -173,6 +173,7 @@ app.get('/api/v1/user-details', async (req, res) => {
         }
 
         const formattedData = forms.map(entry => ({
+            id:entry.id,
             name: entry.name,
             email: entry.email,
             contactNumber: entry.contactNumber,
@@ -201,7 +202,7 @@ app.put('/api/v1/user-details/:id', async (req, res) => {
             return res.status(404).json({ code: 404, message: 'User not found' });
         }
 
-        // Update fields
+    
         if (name) user.name = name[0].toUpperCase() + name.slice(1);
         if (email) user.email = email;
         if (contactNumber) user.contactNumber = contactNumber;
