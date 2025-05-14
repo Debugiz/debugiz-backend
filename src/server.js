@@ -164,6 +164,32 @@ app.post('/api/v1/login', async (req, res) => {
         });
     }
 });
+app.get('/api/v1/user-details', async (req, res) => {
+    try {
+        const forms = await SignupForm.find();
+
+        if (forms.length === 0) {
+            return res.status(404).json({ code: 404, message: 'No user data found' });
+        }
+
+        const formattedData = forms.map(entry => ({
+            name: entry.name,
+            email: entry.email,
+            contactNumber: entry.contactNumber,
+            role: entry.role
+        }));
+
+        return res.status(200).json({
+            code: 200,
+            message: 'User data fetched successfully',
+            data: formattedData
+        });
+
+    } catch (err) {
+        console.error('Error fetching user details:', err);
+        res.status(500).json({ code: 500, message: 'Internal server error' });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(process.env.PASSWORD)
