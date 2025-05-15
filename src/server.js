@@ -5,7 +5,7 @@ const connectDB = require('./db/db');
 const XLSX = require('xlsx');
 const cors = require('cors');
 const SignupForm = require('./model/singup-form.model');
-
+const nodemailer = require('nodemailer');
 const app = express();
 dotenv.config();
 connectDB();
@@ -232,6 +232,85 @@ app.delete('/api/v1/user-details/:id', async (req, res) => {
 
     } catch (err) {
         console.error('Error deleting user:', err);
+        res.status(500).json({ code: 500, message: 'Internal server error' });
+    }
+});
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'debugiztech@gmail.com',
+        pass: 'aqsp gdae uszm kxcb' 
+    }
+});
+
+app.post('/api/v1/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ code: 400, message: 'Email is required' });
+    }
+
+    try {
+        const user = await SignupForm.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ code: 404, message: 'User not found' });
+        }
+
+        // Generate OTP
+        const otp = Math.floor(100000 + Math.random() * 900000);
+
+        // Set OTP and expiry (10 min)
+        user.resetOtp = otp;
+        user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+        await user.save();
+
+        // Send OTP via email
+        await transporter.sendMail({
+            from: 'Debugiz',
+            to: user.email,
+            subject: 'Password Reset OTP',
+            text: `Your OTP for password reset is: ${otp}. It is valid for 10 minutes.`
+        });
+
+        res.status(200).json({ code: 200, message: 'OTP sent to your email' });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ code: 500, message: 'Internal server error' });
+    }
+});
+
+app.post('/api/v1/reset-password', async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+        return res.status(400).json({ code: 400, message: 'All fields are required' });
+    }
+
+    try {
+        const user = await SignupForm.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ code: 404, message: 'User not found' });
+        }
+
+        // Check OTP and expiry
+        if (user.resetOtp != otp || new Date() > user.otpExpiry) {
+            return res.status(400).json({ code: 400, message: 'Invalid or expired OTP' });
+        }
+
+        // Update password (⚠️ hash in production)
+        user.password = newPassword;
+        user.resetOtp = undefined;
+        user.otpExpiry = undefined;
+
+        await user.save();
+
+        res.status(200).json({ code: 200, message: 'Password reset successfully' });
+
+    } catch (err) {
+        console.error(err);
         res.status(500).json({ code: 500, message: 'Internal server error' });
     }
 });
