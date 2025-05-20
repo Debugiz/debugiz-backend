@@ -92,7 +92,14 @@ app.get('/api/v1/contact-download', async (req, res) => {
     }
 });
 app.post('/api/v1/signup', async (req, res) => {
-    const { name, email, contactNumber,password,role} = req.body;
+     const {
+    name, email, contactNumber, password, role,
+    dob, degree, yop, fatherContact, motherContact,
+    experienceType, imageUrl, dateOfJoining,
+    referenceDetail, documentSubmission, initialAmount,
+    totalAmount, courseSelection, team,
+    isPlaced, companyName, packageName, amountPaidStatus
+  } = req.body;
 
     const requiredFields = ['name', 'email', 'contactNumber', 'password','role'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
@@ -107,7 +114,24 @@ app.post('/api/v1/signup', async (req, res) => {
             contactNumber,
             password,
             role,
-            
+            dob,
+           degree,
+           yop,
+           fatherContact,
+            motherContact,
+           experienceType,
+      imageUrl,
+      dateOfJoining,
+      referenceDetail,
+      documentSubmission,
+      initialAmount,
+      totalAmount,
+      courseSelection,
+      team,
+      isPlaced,
+      companyName,
+      packageName,
+      amountPaidStatus
             
         });
 
@@ -249,32 +273,22 @@ app.post('/api/v1/forgot-password', async (req, res) => {
     if (!email) {
         return res.status(400).json({ code: 400, message: 'Email is required' });
     }
-
     try {
         const user = await SignupForm.findOne({ email });
-
         if (!user) {
             return res.status(404).json({ code: 404, message: 'User not found' });
         }
-
-        // Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000);
-
-        // Set OTP and expiry (10 min)
         user.resetOtp = otp;
         user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
         await user.save();
-
-        // Send OTP via email
         await transporter.sendMail({
             from: 'Debugiz',
             to: user.email,
             subject: 'Password Reset OTP',
             text: `Your OTP for password reset is: ${otp}. It is valid for 10 minutes.`
         });
-
         res.status(200).json({ code: 200, message: 'OTP sent to your email' });
-
     } catch (err) {
         console.error(err);
         res.status(500).json({ code: 500, message: 'Internal server error' });
@@ -287,28 +301,20 @@ app.post('/api/v1/reset-password', async (req, res) => {
     if (!email || !otp || !newPassword) {
         return res.status(400).json({ code: 400, message: 'All fields are required' });
     }
-
     try {
         const user = await SignupForm.findOne({ email });
 
         if (!user) {
             return res.status(404).json({ code: 404, message: 'User not found' });
         }
-
-        // Check OTP and expiry
         if (user.resetOtp != otp || new Date() > user.otpExpiry) {
             return res.status(400).json({ code: 400, message: 'Invalid or expired OTP' });
         }
-
-        // Update password (⚠️ hash in production)
         user.password = newPassword;
         user.resetOtp = undefined;
         user.otpExpiry = undefined;
-
         await user.save();
-
         res.status(200).json({ code: 200, message: 'Password reset successfully' });
-
     } catch (err) {
         console.error(err);
         res.status(500).json({ code: 500, message: 'Internal server error' });
