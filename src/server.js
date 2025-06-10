@@ -332,7 +332,7 @@ app.get("/api/v1/user-details", async (req, res) => {
 });
 app.put("/api/v1/user-details/:id", async (req, res) => {
   const { id } = req.params;
-  const { name, email, contactNumber, password, role } = req.body;
+  const { name, email, contactNumber, role } = req.body;
 
   try {
     const user = await SignupForm.findById(id);
@@ -344,7 +344,6 @@ app.put("/api/v1/user-details/:id", async (req, res) => {
     if (name) user.name = name[0].toUpperCase() + name.slice(1);
     if (email) user.email = email;
     if (contactNumber) user.contactNumber = contactNumber;
-    if (password) user.password = password;
     if (role) user.role = role;
 
     await user.save();
