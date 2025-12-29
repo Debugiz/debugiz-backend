@@ -175,24 +175,7 @@ app.post("/api/v1/signup", async (req, res) => {
     contactNumber,
     password,
     role,
-    dob,
-    degree,
-    yop,
-    fatherContact,
-    motherContact,
-    experienceType,
-    imageUrl,
-    dateOfJoining,
-    referenceDetail,
-    documentSubmission,
-    initialAmount,
-    totalAmount,
-    courseSelection,
-    team,
-    isPlaced,
-    companyName,
-    packageName,
-    amountPaidStatus,
+
   } = req.body;
 
   const requiredFields = ["name", "email", "contactNumber", "password", "role"];
@@ -214,24 +197,7 @@ app.post("/api/v1/signup", async (req, res) => {
       contactNumber,
       password,
       role,
-      dob,
-      degree,
-      yop,
-      fatherContact,
-      motherContact,
-      experienceType,
-      imageUrl,
-      dateOfJoining,
-      referenceDetail,
-      documentSubmission,
-      initialAmount,
-      totalAmount,
-      courseSelection,
-      team,
-      isPlaced,
-      companyName,
-      packageName,
-      amountPaidStatus,
+
     });
 
     await Signup.save();
