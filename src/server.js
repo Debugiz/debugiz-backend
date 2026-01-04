@@ -9,14 +9,16 @@ const nodemailer = require("nodemailer");
 const app = express();
 dotenv.config();
 connectDB();
-
+const bcrypt = require("bcryptjs");
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const jwt = require("jsonwebtoken");
+const authMiddleware = require("./auth/auth.middleware");
 
 const PORT = process.env.PORT || 2000;
 
-app.post("/api/v1/contact-submit", async (req, res) => {
+app.post("/api/v1/contact-submit",authMiddleware, async (req, res) => {
   const { name, email, contactNumber, Dob, Yop, Degree, Address, Experience } =
     req.body;
 
@@ -168,47 +170,82 @@ app.get("/api/v1/contact-download", async (req, res) => {
     res.status(500).json({ code: 500, message: "Error generating Excel file" });
   }
 });
+
+function generateRandomPassword(length = 12) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+
+async function sendPasswordEmail(email, password) {
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail', // or any SMTP service you use
+    auth: {
+      user: 'your-email@gmail.com',
+      pass: 'your-email-password-or-app-password',
+    },
+  });
+
+  const mailOptions = {
+    from: '"Your App" <your-email@gmail.com>',
+    to: email,
+    subject: 'Your Account Password',
+    text: `Welcome! Your password is: ${password}. Please change it after login.`,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
 app.post("/api/v1/signup", async (req, res) => {
-  const {
-    name,
-    email,
-    contactNumber,
-    password,
-    role,
+  const { name, email, contactNumber,password, role } = req.body;
 
-  } = req.body;
-
-  const requiredFields = ["name", "email", "contactNumber", "password", "role"];
+  const requiredFields = ["name", "email", "contactNumber","password" ,"role"];
   const missingFields = requiredFields.filter((field) => !req.body[field]);
   if (missingFields.length !== 0) {
-    return res
-      .status(400)
-      .json({
-        code: 400,
-        message: "Please provide all required fields",
-        missingFields,
-      });
+    return res.status(400).json({
+      code: 400,
+      message: "Please provide all required fields",
+      missingFields,
+    });
   }
 
   try {
-    const Signup = new SignupForm({
+    // Generate password automatically
+    const rawPassword = generateRandomPassword();
+
+    // Hash the generated password before saving
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const signup = new SignupForm({
       name: name[0].toUpperCase() + name.slice(1),
       email,
       contactNumber,
-      password,
+      password:hashedPassword,
       role,
-
     });
 
-    await Signup.save();
-    res.status(200).json({ code: 200, message: "Message sent successfully" });
+    await signup.save();
+
+    // Send password via email
+    // await sendPasswordEmail(email, rawPassword);
+
+    res.status(200).json({
+      code: 200,
+      message: "User signed up successfully. Password sent to email.",
+    });
   } catch (err) {
     console.error("Error saving form:", err);
     res.status(500).json({ code: 500, message: "Error saving form data" });
   }
 });
+
 app.post("/api/v1/login", async (req, res) => {
   const { email, password } = req.body;
+
   if (!email || !password) {
     return res.status(400).json({
       code: 400,
@@ -218,39 +255,43 @@ app.post("/api/v1/login", async (req, res) => {
 
   try {
     const user = await SignupForm.findOne({ email });
-
     if (!user) {
-      return res.status(404).json({
-        code: 404,
-        message: "User not found",
-      });
+      return res.status(404).json({ code: 404, message: "User not found" });
     }
-    if (user.password !== password) {
-      return res.status(401).json({
-        code: 401,
-        message: "Invalid credentials",
-      });
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(401).json({ code: 401, message: "Invalid credentials" });
     }
+
+    // ✅ CREATE JWT TOKEN
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
 
     res.status(200).json({
       code: 200,
       message: "Login successful",
+      token,
       user: {
         name: user.name,
         email: user.email,
-        contactNumber: user.contactNumber,
         role: user.role,
       },
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({
-      code: 500,
-      message: "Internal server error",
-    });
+    res.status(500).json({ code: 500, message: "Internal server error" });
   }
 });
-app.get("/api/v1/user-details", async (req, res) => {
+
+app.get("/api/v1/user-details",authMiddleware, async (req, res) => {
   try {
     const forms = await SignupForm.find();
 
